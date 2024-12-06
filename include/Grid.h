@@ -21,7 +21,7 @@ class TheGrid {
 public:
     TheGrid(bool isSimulator, const std::shared_ptr<threepp::Scene> &scene);
 
-    // ChatGPT queue and mutex
+
     std::queue<std::function<void()>> visualizationQueue;
     std::mutex visualizationQueueMutex;
 
@@ -34,7 +34,7 @@ public:
 
     std::shared_ptr<threepp::Mesh> createVisuBox(const threepp::Vector3& pos, const threepp::Color& color);
 
-    // Public Variables for ease of use currently, might need fix. TODO: look through this
+
     std::unordered_map<int, std::unordered_map<int, GridData>> theGrid;
     float scaleFactor = 5;
     std::vector<std::shared_ptr<threepp::Mesh>> visualizationMeshes;

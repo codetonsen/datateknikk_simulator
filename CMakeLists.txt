@@ -31,7 +31,7 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(SimpleSocket threepp)
 
 # Add executable
-add_executable(New_Version_Simulator
+add_executable(Sphero_Simulator
         main.cpp
         source/Slam.cpp
         source/Sphero.cpp
@@ -63,8 +63,12 @@ find_package(g2o CONFIG REQUIRED COMPONENTS
         viewer
 )
 
+
+
+
+
 # Include folder
-target_include_directories(New_Version_Simulator PUBLIC
+target_include_directories(Sphero_Simulator PUBLIC
         ${CMAKE_SOURCE_DIR}/include
         ${G2O_INCLUDE_DIRS}
         ${pcl_INCLUDE_DIRS}
@@ -72,7 +76,7 @@ target_include_directories(New_Version_Simulator PUBLIC
         ${VTK_INCLUDE_DIRS}
 )
 # include spesific links
-target_link_libraries(New_Version_Simulator PRIVATE
+target_link_libraries(Sphero_Simulator PRIVATE
         g2o::core
         g2o::stuff
         g2o::types_slam2d
@@ -86,7 +90,7 @@ target_link_libraries(New_Version_Simulator PRIVATE
 
 # Copy assets folder to the build directory
 add_custom_command(
-        TARGET New_Version_Simulator POST_BUILD
+        TARGET Sphero_Simulator POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/Assets $<TARGET_FILE_DIR:New_Version_Simulator>/Assets
+        ${CMAKE_SOURCE_DIR}/Assets $<TARGET_FILE_DIR:Sphero_Simulator>/Assets
 )

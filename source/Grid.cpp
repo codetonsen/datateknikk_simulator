@@ -17,7 +17,7 @@ void TheGrid::newCell(float gx, float gy, int frameIndex) { // makes a new cell 
 	int posY = static_cast<int>(round(gy * scaleFactor));
 	if (theGrid[posX][posY].lidarIndexes.size() == 0) {
 		theGrid[posX][posY].id = cellCount;
-		addCell(posX, posY); // have a lot of problems with this, so am trying multithreading
+		addCell(posX, posY);
 		cellCount++;
 	}
 	theGrid[posX][posY].lidarIndexes.push_back(frameIndex);
@@ -26,7 +26,7 @@ void TheGrid::newCell(float gx, float gy, int frameIndex) { // makes a new cell 
 
 
 
-	// Debug for checking if multiple indexes can be added
+
 	std::cout << "LidarIndexes : [";
 	for (auto index : theGrid[posX][posY].lidarIndexes) {
 		std::cout << index;
@@ -49,7 +49,7 @@ void TheGrid::addCell(int posX, int posY) {
 
 
 	auto box = createVisuBox({static_cast<float>(posX / scaleFactor), 0.05, static_cast<float>(posY / scaleFactor)}, threepp::Color::pink);
-	{ // chatgpt threading stuff
+	{
 		std::lock_guard<std::mutex> lock(visualizationQueueMutex);
 		visualizationQueue.push([this, box]() {
 

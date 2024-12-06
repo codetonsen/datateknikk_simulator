@@ -10,7 +10,7 @@
 
 
 using namespace threepp;
-std::shared_ptr<Mesh> createBox2(const Vector3& pos, const Color& color) {
+std::shared_ptr<Mesh> createBasicBox(const Vector3& pos, const Color& color) {
     auto geometry = BoxGeometry::create(0.90, 0.1, 0.90);
     auto material = MeshPhongMaterial::create();
     material->color = color;
@@ -24,8 +24,8 @@ std::shared_ptr<Mesh> createBox2(const Vector3& pos, const Color& color) {
 
 int main() {
 
-    // Rest of the scene
-    Clock clock;
+    // Setup of scene
+    Clock clock; // needed for dt
     Canvas canvas{ "Sphero Simulator", {{"aa", 8}} };
     GLRenderer renderer(canvas.size());
 
@@ -60,7 +60,7 @@ int main() {
 
 
 
-    // Load additional objects
+    // Load additional room mesh and texture
     OBJLoader loader;
     TextureLoader tl;
 
@@ -70,20 +70,20 @@ int main() {
     obj2->traverseType<Mesh>([tex](Mesh& child) {
         auto m = MeshPhongMaterial::create();
         m->map = tex;
-        //m->side = threepp::Side::Double;  // Enable backface culling
+        //m->side = threepp::Side::Double;  // Enable backface culling. I modelled the mesh when this in mind, because we wanted 3d lidar, so the roof has to be there but we also want to see it. This is probably the easiest method
         child.setMaterial(m);
     });
     obj2->position.set(0, 0, 0);
     scene->add(obj2);
 
     // Create Sphero object
-    Sphero sphero(scene, "127.0.0.1", 65432);  // Provide the host and port
+    Sphero sphero(scene, "127.0.0.1", 65432);  // Provide the host and port for TCP
     sphero.position.y = 0.1;
     scene->add(sphero);
     sphero.setLidarSpeed(600.0);
     sphero.enableSweep(false);
 
-    // Set up objects to scan
+    // Set up objects to scan, this includes the cubes and the room mesh
     std::vector<Object3D*> objectsToScan = { cube1.get(), cube2.get(), cube3.get(), cube4.get(), cube5.get(), cube6.get() };
     obj2->traverseType<Mesh>([&objectsToScan](Mesh& child) {
         child.geometry()->computeBoundingBox();
@@ -91,9 +91,9 @@ int main() {
     });
     sphero.setScanObjects(objectsToScan);
 
-    // Attach POV camera to Sphero
+    // Attach POV camera to Sphero.
     auto povCamera = PerspectiveCamera::create(75, canvas.aspect(), 0.1f, 100);
-    povCamera->position.set(0.2, 0.5, 0.0);
+    povCamera->position.set(-0.5, 0.5, 0.0);
     povCamera->lookAt(10.0,0.5,0.0);
     sphero.add(povCamera);
 
@@ -108,17 +108,20 @@ int main() {
         renderer.setSize(size);
     });
 
+
+
+    // Initialize slam object
     NewSlam new_slam(scene);
 
 
     float time = 0.0f;
     const float interval = 0.01f; //SLAMINTERVAL
-    bool firstTime = true;
+
+
     // Render and display loop
     canvas.animate([&]() {
         float deltaTime = clock.getDelta();
         keyController.update(deltaTime);
-
         time += deltaTime;
 
         // Process visualization updates
@@ -138,7 +141,7 @@ int main() {
             time = 0.0f;
         }
 
-
+        // Actual rendering of the scene. Depending on the camera setting
         if (sphero.pov) {
             povCamera->fov = 100;
             povCamera->updateProjectionMatrix(); // to fix pov change

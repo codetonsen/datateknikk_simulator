@@ -179,18 +179,17 @@ void NewSlam::addVertex(int id, std::vector<float>& pose) {
 
 };
 void NewSlam::addEdge(int fromID, int toID, const Eigen::Isometry2d& relativePose, const Eigen::Matrix3d informationMatrix) {
-    if (!optimizer->vertex(fromID) || !optimizer->vertex(toID)) { // Check from chatGPT
+    if (!optimizer->vertex(fromID) || !optimizer->vertex(toID)) { // tries to find the vertex with fromid and toid in the optimizer. Breaks if one is not there, this causes many problems if not here.
         std::cerr << "One of the vertices (from: " << fromID << ", to: " << toID << ") does not exist in the optimizer." << std::endl;
         return;
     }
 
+    // Setting up the general graph optimizer edge.
     g2o::EdgeSE2* edge = new g2o::EdgeSE2();
     edge->vertices()[0] = optimizer->vertex(fromID);
     edge->vertices()[1] = optimizer->vertex(toID);
-    edge->setMeasurement(g2o::SE2(relativePose.translation().x(),
-      relativePose.translation().y(),
-      atan2(relativePose.rotation().matrix()(1,0),
-        relativePose.rotation().matrix()(0,0))));
+    // relativepose: x,y,delta heading
+    edge->setMeasurement(g2o::SE2(relativePose.translation().x(), relativePose.translation().y(), atan2(relativePose.rotation().matrix()(1,0), relativePose.rotation().matrix()(0,0))));
     edge->setInformation(informationMatrix);
     if (!optimizer->addEdge(edge)) {
         std::cerr << "Failed to add edge from " << fromID << " to " << toID << std::endl;
@@ -214,8 +213,6 @@ void NewSlam::runOptimization() {
 
     std::cout << "Optimization Complete." << std::endl;
 
-    // Export the pose graph. Hvent gotten to this yet.
-
 }
 void NewSlam::initializePoseGraph() {
     optimizer = std::make_unique<g2o::SparseOptimizer>();
@@ -227,7 +224,7 @@ void NewSlam::initializePoseGraph() {
     optimizer->setAlgorithm(solver_ptr.release());
     optimizer->setVerbose(false);
 }
-pcl::PointCloud<pcl::PointXYZ>::Ptr NewSlam::toPCLformat(std::vector<std::pair<float, float>> data) {
+pcl::PointCloud<pcl::PointXYZ>::Ptr NewSlam::toPCLformat(const std::vector<std::pair<float, float>>& data) {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud(new pcl::PointCloud<pcl::PointXYZ>());
     for(const auto& point : data) {
         pcl::PointXYZ pclPoint;
@@ -240,7 +237,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr NewSlam::toPCLformat(std::vector<std::pair<f
 }
 
 // Main Methods in SLAM.
-bool NewSlam::doTheMatching(std::vector<std::pair<float, float>> sourceData, std::vector<std::pair<float, float>> targetData, Eigen::Matrix4f& transformation, double& score) {
+bool NewSlam::doTheMatching(const std::vector<std::pair<float, float>> &sourceData, std::vector<std::pair<float, float>> targetData, Eigen::Matrix4f& transformation, double& score) {
     auto source = toPCLformat(sourceData);
     auto target = toPCLformat(targetData);
 
@@ -339,35 +336,6 @@ void NewSlam::addFrame(std::pair<std::vector<std::pair<float, float>>, std::vect
     std::cout << "Starting ICP optimization on transform" << std::endl;
     Eigen::Matrix4f transformation;
 
-    /*
-    float robotX = dataFrame.second[0];
-    float robotY = dataFrame.second[1];
-    float robotHeading = dataFrame.second[2];
-    std::vector<std::pair<float, float>> processedLidarFrameForICP = {};
-    for (auto point : dataFrame.first) {
-
-        float localX = point.first;
-        float localY = point.second;
-
-        // apply the rotation
-        float transformedX = localX * cos(-robotHeading) - localY * sin(-robotHeading);
-        float transformedY = localX * sin(-robotHeading) + localY * cos(-robotHeading);
-        processedLidarFrameForICP.push_back({transformedX, transformedY});
-
-    }
-    std::vector<std::pair<float, float>> processedLidarFrameForICP2 = {};
-    auto previousRobotHeading = poseFrames[lidarFrames.size()-2][2];
-    for (auto point : lidarFrames[lidarFrames.size()-2]) {
-
-        float localX = point.first;
-        float localY = point.second;
-
-        // apply the rotation
-        float transformedX = localX * cos(-previousRobotHeading) - localY * sin(-previousRobotHeading);
-        float transformedY = localX * sin(-previousRobotHeading) + localY * cos(-previousRobotHeading);
-        processedLidarFrameForICP2.push_back({transformedX, transformedY});
-
-    }*/
     double score;
     bool success = doTheMatching(lidarFrames[lidarFrames.size()-2], dataFrame.first, transformation, score);
     if (success) {

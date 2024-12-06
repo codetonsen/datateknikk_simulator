@@ -58,13 +58,13 @@ public:
   void processFrames();
   void stopSLAMThread();
 
-  // ChatGPT Parser for g2o format
+  // exportToG2O method is from ChatGPT. This parses the data to a standard format
   void exportToG2O(const std::string& filename, g2o::SparseOptimizer* optimizer);
 
   void addVertex(int id, std::vector<float>& pose);
   void addEdge(int fromID, int toID, const Eigen::Isometry2d& relativePose, const Eigen::Matrix3d informationMatrix);
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr toPCLformat(std::vector<std::pair<float, float>> data);
+  pcl::PointCloud<pcl::PointXYZ>::Ptr toPCLformat(const std::vector<std::pair<float, float>>& data);
   std::vector<std::pair<std::vector<LidarScan>, std::vector<float>>> parseDataset(const std::string& filename, float offsetX = 0, float offsetY = 0, float offsetHeading = 0);
 
 
@@ -73,7 +73,7 @@ public:
 
 
   void runOptimization();
-  bool doTheMatching(std::vector<std::pair<float, float>> sourceData, std::vector<std::pair<float, float>> targetData, Eigen::Matrix4f& transformation, double& score);
+  bool doTheMatching(const std::vector<std::pair<float, float>> &sourceData, std::vector<std::pair<float, float>> targetData, Eigen::Matrix4f& transformation, double& score);
   void initializePoseGraph();
   void addFrame(std::pair<std::vector<std::pair<float, float>>, std::vector<float>> dataFrame);
 

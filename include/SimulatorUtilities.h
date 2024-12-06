@@ -17,11 +17,11 @@ struct LidarScan {
     float range;  // Distance measurement
     threepp::Vector3 start;
     threepp::Vector3 end;
-    float x;
-    float y;
+    float x; // global x without rotation sync
+    float y; // global x without rotation sync
 };
 
-// Function to create a box mesh
+
 std::shared_ptr<threepp::Mesh> createBox(const threepp::Vector3& pos, const threepp::Color& color);
 std::shared_ptr<threepp::Mesh> createCubeForBelt(const std::shared_ptr<threepp::MeshBasicMaterial>& material);
 std::vector<threepp::Vector3> createPathPoints(float scale, float offset);

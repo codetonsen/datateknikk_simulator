@@ -33,12 +33,12 @@ using asio::ip::tcp;
 
 class Sphero : public threepp::Object3D {
 public:
-    Sphero(std::shared_ptr<threepp::Scene> theScene, const std::string& host, int port);
+    Sphero(const std::shared_ptr<threepp::Scene> &theScene, const std::string& host, int port);
     ~Sphero();
 
-    void enableSweep(bool enable);
+    void enableSweep(bool enable); // Enables sweep, 3d lidar scan feature modelled like physical hardware
     void adjustTiltAngle();
-    const std::vector<LidarScan>& getLidarScans() const;
+
     void startLidar();
     void stopLidar();
     void runLidar();
@@ -54,20 +54,22 @@ public:
 
 
 
-    void setLidarSleepTime(int sleepTime);                                  // Lidar runs on seperate thread, this sets sleep time between each individual scan in ms. Setting this to 1 gives max : 500-1000 scans a second so keep at 0
-    void setLidarSpeed(double RPM);                                            // Sets lidar rotation speed in RPM
-    void setLidarResolution(double resolution);                                // Resolution means the count of scans each 360 degree or one rotation
-    void setLidarSweepAngle(float sweepAngle);                              // Sets the tilts to +- sweepangle. sweepAngle = 30 -> tilts +-30 degrees
-    void setLidarSweepSpeed(float sweepSpeed);                              // The time it uses to do a full sweep in seconds.
-    void setLidarSweepRadiusOffset(float sweepRadiusOffset);                // Sets the sweep offset, its not rotating around the center in the physical hardware, so its added here as well
-    void setVisualization(bool visualization);                              // Turns on or off lidar scan lines. Default true (ON)
-    std::vector<LidarScan> getScanFrame();                                  // Returns latest frame of lidarscans. This is a vector of size lidarResolution.
-    OdometryData getOdometryData() const;                                   // Returns latest frame of odometryData. This is a vector of size lidarResolution.
-    std::pair<std::vector<LidarScan>, std::vector<OdometryData>> getFullFrame(); // Returns a pair of two equally sized vectors of both lidarscans and odometrydata.
-    std::pair<std::vector<std::pair<float, float>>, std::vector<float>> getSLAMframe();
+    void setLidarSleepTime(int sleepTime);                                              // Lidar runs on seperate thread, this sets sleep time between each individual scan in ms. Setting this to 1 gives max : 500-1000 scans a second so keep at 0
+    void setLidarSpeed(double RPM);                                                     // Sets lidar rotation speed in RPM
+    void setLidarResolution(double resolution);                                         // Resolution means the count of scans each 360 degree or one rotation
+    void setLidarSweepAngle(float sweepAngle);                                          // Sets the tilts to +- sweepangle. sweepAngle = 30 -> tilts +-30 degrees
+    void setLidarSweepSpeed(float sweepSpeed);                                          // The time it uses to do a full sweep in seconds.
+    void setLidarSweepRadiusOffset(float sweepRadiusOffset);                            // Sets the sweep offset, its not rotating around the center in the physical hardware, so its added here as well
+    void setVisualization(bool visualization);                                          // Turns on or off lidar scan lines. Default true (ON)
+    const std::vector<LidarScan>& getLidarScans() const;                                // Returns list of lidarscans
+    std::vector<LidarScan> getScanFrame();                                              // Returns latest frame of lidarscans. This is a vector of size lidarResolution.
+    OdometryData getOdometryData() const;                                               // Returns latest frame of odometryData. This is a vector of size lidarResolution.
+    std::pair<std::vector<LidarScan>, std::vector<OdometryData>> getFullFrame();        // Returns a pair of two equally sized vectors of both lidarscans and odometrydata.
+    std::pair<std::vector<std::pair<float, float>>, std::vector<float>> getSLAMframe(); // This is the main get used. Returns the slamframe in the used format.
 
 
     bool pov = false;
+
 private:
     double currentSpeed = 0.0;
 
@@ -83,7 +85,9 @@ private:
     float tiltAngle;
     int tiltDirection;
     double dt;
-    float time = 0.0; //For belt
+
+
+    // Belt visualizer variables
     float beltPositionOffsetLeft_ = 0.0f; // Persistent offset along the belt path
     std::vector<std::shared_ptr<threepp::Mesh>> beltCubesRight_; // Second belt cubes
     float beltPositionOffsetRight_ = 0.0f;              // Offset for the second belt
@@ -93,9 +97,9 @@ private:
 
 
     float speed = 1;
-    // RPM
-    double lidarSpeed_ = 60.0;
-    double lidarResolution_ = 120.0;
+
+    double lidarSpeed_ = 60.0; // RPM
+    double lidarResolution_ = 360.0;
     float sleepToReachRPM_;
 
     OdometryData currentOdometry_;

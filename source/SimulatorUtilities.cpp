@@ -28,8 +28,8 @@ using namespace threepp;
 std::vector<Vector3> createPathPoints(float scale = 0.3f, float offset = 0.0f) {
     std::vector<Vector3> pathPoints;
 
-    // Define parameters for the semicircles with scaling
-    float radius = 0.23f * scale;
+
+    float radius = 0.23f * scale; // radius of semicircle on each end of the betl
     int segments = 50;
 
     // First semicircle
@@ -38,7 +38,7 @@ std::vector<Vector3> createPathPoints(float scale = 0.3f, float offset = 0.0f) {
         pathPoints.emplace_back((-0.5f * scale) + radius * std::cos(angle), radius * std::sin(angle), offset);
     }
 
-    // Straight line connecting the left to the right
+
     int lineSegments = 50;  // Number of points along the straight line
     for (int i = 0; i <= lineSegments; ++i) {
         float z = (-0.5f * scale) + (scale * i / lineSegments); // Interpolate z from -0.5 * scale to 0.5 * scale
@@ -51,7 +51,7 @@ std::vector<Vector3> createPathPoints(float scale = 0.3f, float offset = 0.0f) {
         pathPoints.emplace_back((0.5f * scale) + radius * std::cos(angle), radius * std::sin(angle), offset);
     }
 
-    // Straight line connecting back from right to left
+
     for (int i = 0; i <= lineSegments; ++i) {
         float z = (0.5f * scale) - (scale * i / lineSegments); // Interpolate z from 0.5 * scale to -0.5 * scale
         pathPoints.emplace_back(z, radius, offset);
@@ -74,7 +74,7 @@ InstancedMeshController::InstancedMeshController(int instanceCount, std::shared_
 void InstancedMeshController::initializePositions() {
     Matrix4 matrix;
     for (int i = 0; i < instanceCount_; ++i) {
-        Vector3 position(40.0f, 40.0f, 40.0f);
+        Vector3 position(40.0f, 40.0f, 40.0f); // set all meshes to a position out of view (can still be seen though)
         matrix.setPosition(position);
         instancedMesh_->setMatrixAt(i, matrix);
     }
@@ -83,7 +83,7 @@ void InstancedMeshController::initializePositions() {
 
 void InstancedMeshController::initializeInstanceColors() {
     for (int i = 0; i < instanceCount_; ++i) {
-        instancedMesh_->setColorAt(i, Color(0x00ff00));  // Start with teal
+        instancedMesh_->setColorAt(i, Color(0x00ff00));  // Start with GREEN
     }
     instancedMesh_->instanceColor()->needsUpdate();
 }

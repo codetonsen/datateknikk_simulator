@@ -29,7 +29,7 @@ private:
     bool left = false;
     bool right = false;
     bool doubleSpeed = false;
-
+    bool halfSpeed = false;
 };
 
 

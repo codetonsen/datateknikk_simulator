@@ -17,7 +17,7 @@ void KeyController::update(float dt_) {
     }
 
     // Send to sphero drive function
-    sphero_.drive({forward, backward, left, right, doubleSpeed}, dt);
+    sphero_.drive({forward, backward, left, right, doubleSpeed, halfSpeed}, dt);
 }
 
 void KeyController::onKeyPressed(KeyEvent evt) {
@@ -33,6 +33,8 @@ void KeyController::onKeyPressed(KeyEvent evt) {
         lidarScan = !lidarScan;
     } else if (evt.key == Key::SPACE) {
         doubleSpeed = true;
+    } else if (evt.key == Key::CAPS_LOCK) {
+        halfSpeed = true;
     } else if (evt.key == Key::T) {
         sphero_.enableSweep(false);
     } else if (evt.key == Key::F) {
@@ -62,5 +64,7 @@ void KeyController::onKeyReleased(KeyEvent evt) {
         right = false;
     } else if (evt.key == Key::SPACE){
         doubleSpeed = false;
+    } else if (evt.key == Key::CAPS_LOCK) {
+        halfSpeed = false;
     }
 }
