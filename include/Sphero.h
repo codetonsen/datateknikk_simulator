@@ -68,13 +68,21 @@ public:
     std::pair<std::vector<std::pair<float, float>>, std::vector<float>> getSLAMframe(); // This is the main get used. Returns the slamframe in the used format.
 
 
+    void enableNoise();
+    void disableNoise();
+    void setNoiseLevel(float noiseLevel);
+
+
+
+
     bool pov = false;
 
 private:
     double currentSpeed = 0.0;
 
-    double noiseAmplitude = 0.03f;
+    float noiseAmplitude = 0.03f;
     float rotationNoiseWeight = 0.5;
+    bool noiseEnabled;
 
 
     int lidarSleepTime_;

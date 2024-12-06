@@ -105,6 +105,26 @@ void Sphero::adjustTiltAngle() {
     }
 }
 
+void Sphero::enableNoise() {
+    noiseEnabled = true;
+}
+
+void Sphero::disableNoise() {
+    noiseEnabled = false;
+}
+void Sphero::setNoiseLevel(float noiseLevel) {
+    noiseAmplitude = noiseLevel;
+}
+
+
+
+
+
+
+
+
+
+
 const std::vector<LidarScan>& Sphero::getLidarScans() const {
     return lidarScans;
 }
@@ -170,11 +190,17 @@ float addNoise(float value, float noiseLevel = 0.01f) { // For simulating bad od
 std::pair<std::vector<std::pair<float, float>>, std::vector<float>> Sphero::getSLAMframe() {
     std::lock_guard<std::mutex> lock(lidarMutex);
     if (lidarScans.size() >= lidarResolution_) {
-        std::vector<float> posChange = {
-            addNoise(this->position.x, noiseAmplitude), // Small noise for x
-            addNoise(this->position.z, noiseAmplitude), // Small noise for z
-            addNoise(this->rotation.y, noiseAmplitude*rotationNoiseWeight) // Smaller noise for rotation
-        };
+        std::vector<float> posChange;
+        if (noiseEnabled) {
+            posChange = {
+                addNoise(this->position.x, noiseAmplitude), // Small noise for x
+                addNoise(this->position.z, noiseAmplitude), // Small noise for z
+                addNoise(this->rotation.y, noiseAmplitude*rotationNoiseWeight) // Smaller noise for rotation
+            };
+        } else {
+            posChange = {this->position.x, this->position.z, this->rotation.y};
+        }
+
 
         //std::cout << "Rotation is currently at: " << this->rotation.y << std::endl;
         std::vector<std::pair<float, float>> convertedPoints;

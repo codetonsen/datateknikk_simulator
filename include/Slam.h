@@ -77,6 +77,8 @@ public:
   void initializePoseGraph();
   void addFrame(std::pair<std::vector<std::pair<float, float>>, std::vector<float>> dataFrame);
 
+  void setDistanceThreshold(float threshold);
+
   TheGrid myGridInstance;
 private:
 

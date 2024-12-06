@@ -82,6 +82,12 @@ int main() {
     scene->add(sphero);
     sphero.setLidarSpeed(600.0);
     sphero.enableSweep(false);
+    sphero.enableNoise();
+    sphero.setNoiseLevel(0.3);
+    sphero.disableNoise();
+
+
+
 
     // Set up objects to scan, this includes the cubes and the room mesh
     std::vector<Object3D*> objectsToScan = { cube1.get(), cube2.get(), cube3.get(), cube4.get(), cube5.get(), cube6.get() };
@@ -112,7 +118,7 @@ int main() {
 
     // Initialize slam object
     NewSlam new_slam(scene);
-
+    new_slam.setDistanceThreshold(0.1);
 
     float time = 0.0f;
     const float interval = 0.01f; //SLAMINTERVAL

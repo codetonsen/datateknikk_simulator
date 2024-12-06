@@ -469,7 +469,11 @@ void NewSlam::addFrame(std::pair<std::vector<std::pair<float, float>>, std::vect
 
 
     };
-  };
+  }
+
+void NewSlam::setDistanceThreshold(float distance) {
+    threshold = distance;
+};
 
 void NewSlam::updateLidarMap(const std::pair<std::vector<std::pair<float, float>>, std::vector<float>>& scanAndPose) {
     // Ensure the pose vector is of size 3
