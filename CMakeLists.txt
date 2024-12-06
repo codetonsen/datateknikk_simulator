@@ -33,11 +33,12 @@ FetchContent_MakeAvailable(SimpleSocket threepp)
 # Add executable
 add_executable(New_Version_Simulator
         main.cpp
-        #source/Slam.cpp
+        source/Slam.cpp
         source/Sphero.cpp
         source/SimulatorUtilities.cpp
         source/KeyHandler.cpp
         source/Communication.cpp
+        source/Grid.cpp
         #source/SlamAlgo.cpp
 )
 

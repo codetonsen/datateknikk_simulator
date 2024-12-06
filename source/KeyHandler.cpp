@@ -22,27 +22,35 @@ void KeyController::update(float dt_) {
     } else {
         sphero_.stopLidar();
     }
-    sphero_.drive(payload, dt);
+
+    sphero_.drive({forward, backward, left, right, doubleSpeed}, dt);
+
     //sphero_.drive_with_heading(keyState_.heading, keyState_.speed, dt);
 }
 
 void KeyController::onKeyPressed(KeyEvent evt) {
     if (evt.key == Key::W) {
         payload = 0x01;
+        forward = true,
+
         keyState_.speed = shiftPressed ? maxSpeed * 2 : maxSpeed;
     } else if (evt.key == Key::S) {
         payload = 0x04;
+        backward = true;
         keyState_.speed = shiftPressed ? -maxSpeed * 2 : -maxSpeed;
     } else if (evt.key == Key::A) {
         payload = 0x02;
+        left = true;
         rotatingLeft = true;
     } else if (evt.key == Key::D) {
         payload = 0x03;
+        right = true;
         rotatingRight = true;
     } else if (evt.key == Key::L) {
         lidarScan = !lidarScan;
     } else if (evt.key == Key::SPACE) {
         shiftPressed = true;
+        doubleSpeed = true;
     } else if (evt.key == Key::T) {
         sphero_.enableSweep(false);
     } else if (evt.key == Key::F) {
@@ -85,17 +93,25 @@ void KeyController::onKeyPressed(KeyEvent evt) {
 }
 
 void KeyController::onKeyReleased(KeyEvent evt) {
-    if (evt.key == Key::W || evt.key == Key::S) {
-        keyState_.speed = 0;
-        payload = 0;
+    if (evt.key == Key::W) {
+        forward = false;
+    } else if(evt.key == Key::S) {
+        //keyState_.speed = 0;
+        //payload = 0;
+        backward = false;
+
     } else if (evt.key == Key::A) {
         rotatingLeft = false;
         payload = 0;
+        left = false;
     } else if (evt.key == Key::D) {
         rotatingRight = false;
         payload = 0;
+        right = false;
     } else if (evt.key == Key::SPACE) {
         shiftPressed = false;
         payload = 0;
+        doubleSpeed = false;
+
     }
 }

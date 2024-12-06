@@ -257,8 +257,6 @@ void Sphero::update(float deltaTime) {
     //this->rotation.y = rotationDelta_;
 
 
-    // COLLISION
-
 
     // Calculate odometry
     currentOdometry_.position = this->position;
@@ -336,11 +334,14 @@ void Sphero::drive_with_heading(float wantedHeading, float wantedSpeed, float de
     translationDelta_ = currentSpeed;
 }*/
 
-void Sphero::drive(int payload, float deltaTime) {
-    if (payload == 0x01)        {this->translateX(speed * deltaTime);}
-    else if (payload == 0x02)   {this->rotation.y += g2o::deg2rad(100.0) * deltaTime;}
-    else if (payload == 0x03)   {this->rotation.y -= g2o::deg2rad(100.0) * deltaTime;}
-    else if (payload == 0x04)   {this->translateX(-speed * deltaTime);}
+void Sphero::drive(std::vector<bool> driveData, float deltaTime) {
+    int multiplier = 1;
+    if (driveData[4]) {multiplier = 2;}
+    if (driveData[0]) {this->translateX(speed * multiplier * deltaTime);}
+    if (driveData[1]) {this->translateX(-speed * multiplier * deltaTime);}
+    if (driveData[2]) {this->rotation.y += g2o::deg2rad(100.0) * deltaTime;}
+    if (driveData[3]) {this->rotation.y -= g2o::deg2rad(100.0) * deltaTime;}
+
 }
 
 void Sphero::setupLidarInstancedMesh(int maxLines) {

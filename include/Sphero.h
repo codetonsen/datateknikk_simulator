@@ -49,7 +49,7 @@ public:
 
     void update(float deltaTime);
 
-    void drive(int payload, float deltaTime); // Use this for simple driving FORWARD, LEFT, RIGHT, BACK
+    void drive(std::vector<bool> driveData, float deltaTime); // Use this for simple driving FORWARD, LEFT, RIGHT, BACK
 
     void drive_with_heading(float wantedHeading, float wantedSpeed, float deltaTime);
 
@@ -70,10 +70,12 @@ public:
 
     bool pov = false;
 private:
+    double currentSpeed = 0.0;
+
 
     float translationDelta_;
     float rotationDelta_;
-    float currentSpeed;
+
     int lidarSleepTime_;
     int lidarScanCount;
     int currentAngleIndex;

@@ -32,6 +32,14 @@ private:
         float heading = 0.0f;
         float speed = 0.0f;
     } keyState_;
+
+
+    bool forward = false;
+    bool backward = false;
+    bool left = false;
+    bool right = false;
+    bool doubleSpeed = false;
+
 };
 
 
