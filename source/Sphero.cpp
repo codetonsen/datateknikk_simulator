@@ -22,8 +22,6 @@ Sphero::Sphero(std::shared_ptr<Scene> theScene, const std::string& host, int por
 lidarScanCount(360),
 lidarSleepTime_(0),
 currentSpeed(0.0f),
-translationDelta_(0.0f),
-rotationDelta_(0.0f),
 currentAngleIndex(0),
 lidarRunning(true),
 tiltAngle(-30.0f),
@@ -33,28 +31,48 @@ sweep(false),
 lidarSpeed_(60.0)
 {
     theScene_ = theScene;
-    auto mybox = createBox({0, 0, 0}, Color::teal);
-    this->add(mybox);
-                                                                // To add belts i followed this and the fiddle-example: https://discourse.threejs.org/t/how-to-animate-a-conveyor-belt-along-an-axis/31331/2
+    OBJLoader loader;
+    TextureLoader tl;
+
+    auto tex = tl.load("Assets/sphero_texture.png");
+    auto obj2 = loader.load("Assets/sphero.obj", true);
+
+    obj2->traverseType<Mesh>([tex](Mesh& child) {
+        auto m = MeshPhongMaterial::create();
+        m->map = tex;
+        child.setMaterial(m);
+    });
+    obj2->position.set(0, -0.1, 0);
+    obj2->rotateY(-threepp::math::PI/2);
+    obj2->scale.set(0.3, 0.3, 0.27);
+    this->add(obj2);
+
+    //auto mybox = createBox({0, 0, 0}, Color::teal);
+    //this->add(mybox);
+    // To add belts i took this and the fiddle-example for some inspiration. I first tried using textures but did not work, so i used cubes instead: https://discourse.threejs.org/t/how-to-animate-a-conveyor-belt-along-an-axis/31331/2
 
     auto material = MeshBasicMaterial::create();
-    material->color = Color(41.0, 56.0, 56.0); // should be some kind of dark teal
+    material->color = Color::gray; // should be some kind of dark teal
 
     // Create left belt path and cubes
-    beltPathLeft_ = createPathPoints(0.3, -0.3);
+    beltPathLeft_ = createPathPoints(0.4, -0.25);
     for (int i = 0; i < 100; i++) {
         auto cubeLeft = createCubeForBelt(material);
         beltCubesLeft_.push_back(cubeLeft);
+
+
         this->add(cubeLeft);
     }
 
     // Create right belt path and cubes
-    beltPathRight_ = createPathPoints(0.3, 0.3); // Right belt path, same scale
+    beltPathRight_ = createPathPoints(0.4, 0.25); // Right belt path, same scale
     for (int i = 0; i < 100; i++) {
         auto cubeRight = createCubeForBelt(material);
         beltCubesRight_.push_back(cubeRight);
+
         this->add(cubeRight);
     }
+
     precomputeAngles(lidarScanCount);
     setupLidarInstancedMesh(lidarScanCount);
     setupSocketConnection(host, port);
@@ -155,7 +173,7 @@ std::pair<std::vector<LidarScan>, std::vector<OdometryData>> Sphero::getFullFram
 }
 
 
-float addNoise(float value, float noiseLevel = 0.01f) {
+float addNoise(float value, float noiseLevel = 0.01f) { // For simulating bad odometry
     static std::default_random_engine generator;
     std::normal_distribution<float> distribution(0.0f, noiseLevel);
     return value + distribution(generator);
@@ -166,10 +184,11 @@ std::pair<std::vector<std::pair<float, float>>, std::vector<float>> Sphero::getS
     std::lock_guard<std::mutex> lock(lidarMutex);
     if (lidarScans.size() >= lidarResolution_) {
         std::vector<float> posChange = {
-            addNoise(this->position.x, 0.03f), // Small noise for x
-            addNoise(this->position.z, 0.03f), // Small noise for z
-            addNoise(this->rotation.y, 0.003f) // Smaller noise for rotation
+            addNoise(this->position.x, noiseAmplitude), // Small noise for x
+            addNoise(this->position.z, noiseAmplitude), // Small noise for z
+            addNoise(this->rotation.y, noiseAmplitude*rotationNoiseWeight) // Smaller noise for rotation
         };
+
         //std::cout << "Rotation is currently at: " << this->rotation.y << std::endl;
         std::vector<std::pair<float, float>> convertedPoints;
         for (const auto& scan : lidarScans) {
@@ -186,7 +205,7 @@ std::pair<std::vector<std::pair<float, float>>, std::vector<float>> Sphero::getS
             convertedPoints.push_back(std::make_pair(x, y));
         }
 
-        return {convertedPoints, posChange};
+        return {convertedPoints, posChange}; // Returns the same data as from ROVER: x,y,heading + lidarscans(x,y)
     } else {
         return {};
     }
@@ -205,7 +224,6 @@ void Sphero::runLidar() {
 
     while (lidarRunning) {
         auto currentTime = std::chrono::steady_clock::now();
-
 
         if (currentTime >= nextTick) {
             adjustTiltAngle();
@@ -228,16 +246,13 @@ void Sphero::runLidar() {
 }
 
 void Sphero::showDebugLines() {
-    /*{
-        std::lock_guard<std::mutex> lock(lidarMutex);
-        for (auto& scan : lidarScans) {
-            scan.age += lidarSleepTime_ / 1000.0f;
-        }
-    }*/
 
     lidarController_->updatePositionsFromLidar(lidarScans);
-    lidarController_->updateColorsByAge(lidarScans);
+    //lidarController_->updateColorsByAge(lidarScans);
 }
+
+
+
 
 void Sphero::setScanObjects(const std::vector<Object3D*>& objectsToScan) {
     scanObjs = objectsToScan;
@@ -249,98 +264,75 @@ void Sphero::setScanObjects(const std::vector<Object3D*>& objectsToScan) {
 
 
 
-void Sphero::update(float deltaTime) {
 
 
-    //this->translateX(translationDelta_ * deltaTime);
+void Sphero::drive(std::vector<bool> driveData, float deltaTime) {
+    int multiplier = 1;
+    float translationDelta = 0;
+    float rotationDelta = 0;
+    currentSpeed = 0.0;
+    if (driveData[4]) {multiplier = 2;}
+    if (driveData[0]) {this->translateX(speed * multiplier * deltaTime); translationDelta = speed * deltaTime; currentSpeed = -speed * multiplier;}
+    if (driveData[1]) {this->translateX(-speed * multiplier * deltaTime); translationDelta = -speed * deltaTime; currentSpeed = speed * multiplier;}
+    if (driveData[2]) {this->rotation.y += g2o::deg2rad(100.0) * deltaTime; rotationDelta = g2o::deg2rad(100.0) * deltaTime;}
+    if (driveData[3]) {this->rotation.y -= g2o::deg2rad(100.0) * deltaTime; rotationDelta = -g2o::deg2rad(100.0) * deltaTime;}
 
-    //this->rotation.y = rotationDelta_;
+    float leftSpeed;
+    float rightSpeed;
+    // Calculate belt speeds
+    if (rotationDelta != 0) {
+        leftSpeed = currentSpeed + rotationDelta * 50.0f;
+        rightSpeed = currentSpeed - rotationDelta * 50.0f;
+    } else {
+        leftSpeed = currentSpeed - rotationDelta * 50.0f;
+        rightSpeed = currentSpeed + rotationDelta * 50.0f;
+    }
 
 
 
-    // Calculate odometry
-    currentOdometry_.position = this->position;
-    currentOdometry_.orientation = this->rotation.y;
-    currentOdometry_.velocity = currentSpeed;
-    currentOdometry_.timestamp = std::chrono::steady_clock::now();
+    //std::cout << "rotationdelta: " << rotationDelta << std::endl;
+    //std::cout << "The leftSpeed: " << leftSpeed << " rightSpeed: " << rightSpeed << std::endl;
 
-    //std::cout << "ROtation is: " << this->rotation.y << std::endl;
-    // Adjust offsets based on turn factor
+    // Update LEFT belt position
+    if (!beltPathLeft_.empty()) {
+        beltPositionOffsetLeft_ += leftSpeed * deltaTime * 100;
+        beltPositionOffsetLeft_ = std::fmod(beltPositionOffsetLeft_, beltPathLeft_.size());
+        if (beltPositionOffsetLeft_ < 0) beltPositionOffsetLeft_ += beltPathLeft_.size();
+    }
 
-    float leftSpeed = -currentSpeed * (math::PI - rotationDelta_ * 0.5f);  // tune this
-    float rightSpeed = -currentSpeed * (rotationDelta_ * 0.5f); // tune this
-
-    // Update LEFT belt
-    beltPositionOffsetLeft_ += leftSpeed * deltaTime * 100;
-    beltPositionOffsetLeft_ = std::fmod(beltPositionOffsetLeft_, beltPathLeft_.size());
-    if (beltPositionOffsetLeft_ < 0) beltPositionOffsetLeft_ += beltPathLeft_.size();
-
-    // Update RIGHT belt
-    beltPositionOffsetRight_ += rightSpeed * deltaTime * 100;
-    beltPositionOffsetRight_ = std::fmod(beltPositionOffsetRight_, beltPathRight_.size());
-    if (beltPositionOffsetRight_ < 0) beltPositionOffsetRight_ += beltPathRight_.size();
-
+    // Update RIGHT belt position
+    if (!beltPathRight_.empty()) {
+        beltPositionOffsetRight_ += rightSpeed * deltaTime * 100;
+        beltPositionOffsetRight_ = std::fmod(beltPositionOffsetRight_, beltPathRight_.size());
+        if (beltPositionOffsetRight_ < 0) beltPositionOffsetRight_ += beltPathRight_.size();
+    }
     // Move left belt cubes
     for (size_t i = 0; i < beltCubesLeft_.size(); ++i) {
-        float t = std::fmod(i * 10.0f + beltPositionOffsetLeft_, beltPathLeft_.size() - 1);
-        int idx = static_cast<int>(t);
-        float alpha = t - idx;
-        auto& currentPoint = beltPathLeft_[idx];
-        auto& nextPoint = beltPathLeft_[(idx + 1) % beltPathLeft_.size()];
-        beltCubesLeft_[i]->position.lerpVectors(currentPoint, nextPoint, alpha);
+        if (beltPathLeft_.size() > 1) {
+            float t = std::fmod(i * 10.0f + beltPositionOffsetLeft_, beltPathLeft_.size() - 1);
+            int idx = static_cast<int>(t);
+            float alpha = t - idx;
+            auto& currentPoint = beltPathLeft_[idx];
+            auto& nextPoint = beltPathLeft_[(idx + 1) % beltPathLeft_.size()];
+            beltCubesLeft_[i]->position.lerpVectors(currentPoint, nextPoint, alpha);
+        }
     }
 
     // Move right belt cubes
     for (size_t i = 0; i < beltCubesRight_.size(); ++i) {
-        float t = std::fmod(i * 10.0f + beltPositionOffsetRight_, beltPathRight_.size() - 1);
-        int idx = static_cast<int>(t);
-        float alpha = t - idx;
-        auto& currentPoint = beltPathRight_[idx];
-        auto& nextPoint = beltPathRight_[(idx + 1) % beltPathRight_.size()];
-        beltCubesRight_[i]->position.lerpVectors(currentPoint, nextPoint, alpha);
-    }
-
-    // Reset movement deltas for the next update cycle
-    translationDelta_ = 0;
-    rotationDelta_ = 0;
-}
-/*
-void Sphero::drive_with_heading(float wantedHeading, float wantedSpeed, float deltaTime) {
-    auto currentRotationY = this->rotation.y;
-    float targetRotationY = float(wantedHeading) * math::DEG2RAD;
-
-    float maxSpeed = 10.0f;
-    float turnRateFactor = 2.0f - (currentSpeed / maxSpeed);
-    float minTurnFactor = 0.5f;
-    turnRateFactor = std::max(turnRateFactor, minTurnFactor);
-
-    //rotationDelta_ = targetRotationY - currentRotationY; //shortest_signed_angle_path(currentRotationY, targetRotationY) * math::RAD2DEG * turnRateFactor;
-    rotationDelta_ = math::degToRad(wantedHeading);
-    float speedDifference = wantedSpeed - currentSpeed;
-    if (fabs(speedDifference) > 0.01f) {
-        if (speedDifference > 0) {
-            currentSpeed += 5 * deltaTime;
-            if (currentSpeed > wantedSpeed) {
-                currentSpeed = wantedSpeed;
-            }
-        } else if (speedDifference < 0) {
-            currentSpeed -= 12 * deltaTime;
-            if (currentSpeed < wantedSpeed) {
-                currentSpeed = wantedSpeed;
-            }
+        if (beltPathRight_.size() > 1) {
+            float t = std::fmod(i * 10.0f + beltPositionOffsetRight_, beltPathRight_.size() - 1);
+            int idx = static_cast<int>(t);
+            float alpha = t - idx;
+            auto& currentPoint = beltPathRight_[idx];
+            auto& nextPoint = beltPathRight_[(idx + 1) % beltPathRight_.size()];
+            beltCubesRight_[i]->position.lerpVectors(currentPoint, nextPoint, alpha);
         }
     }
+    translationDelta = 0;
+    rotationDelta = 0;
 
-    translationDelta_ = currentSpeed;
-}*/
 
-void Sphero::drive(std::vector<bool> driveData, float deltaTime) {
-    int multiplier = 1;
-    if (driveData[4]) {multiplier = 2;}
-    if (driveData[0]) {this->translateX(speed * multiplier * deltaTime);}
-    if (driveData[1]) {this->translateX(-speed * multiplier * deltaTime);}
-    if (driveData[2]) {this->rotation.y += g2o::deg2rad(100.0) * deltaTime;}
-    if (driveData[3]) {this->rotation.y -= g2o::deg2rad(100.0) * deltaTime;}
 
 }
 
@@ -371,8 +363,8 @@ void Sphero::performSingleLidarScan(int angleIndex) {
     float angleDegrees = angleIndex * angleIncrement;
     float angleRadians = math::degToRad(angleDegrees);
 
-    // Direction vector in the robot's local coordinate frame
-    Vector3 localDirection(std::cos(angleRadians), 0, std::sin(angleRadians));
+
+    Vector3 localDirection(std::cos(angleRadians), 0, std::sin(angleRadians)); //  angleIndex to find the direction of the vector
 
     // Transform the local direction to world coordinates
     Vector3 worldDirection = localDirection.clone().applyQuaternion(this->quaternion);
@@ -388,7 +380,7 @@ void Sphero::performSingleLidarScan(int angleIndex) {
     auto intersections = raycaster.intersectObjects(scanObjs);
     threepp::Vector3 start = this->position;
     threepp::Vector3 end;
-    float range = 10;  // Default to max range if nothing is hit
+    float range = 10;
     if (!intersections.empty()) {
         range = intersections[0].distance;
         end = intersections[0].point;

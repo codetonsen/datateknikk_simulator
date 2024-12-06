@@ -68,7 +68,8 @@ public:
   std::vector<std::pair<std::vector<LidarScan>, std::vector<float>>> parseDataset(const std::string& filename, float offsetX = 0, float offsetY = 0, float offsetHeading = 0);
 
 
-
+  void updateLidarMap(const std::pair<std::vector<std::pair<float, float>>, std::vector<float>>& scanAndPose);
+  void updateLidarMapPostProcess(const std::pair<std::vector<std::pair<float, float>>, std::vector<float>>& scanAndPose);
 
 
   void runOptimization();
@@ -78,6 +79,10 @@ public:
 
   TheGrid myGridInstance;
 private:
+
+  cv::Mat lidarMap = cv::Mat::zeros(1000, 1000, CV_8UC3); // Adjust size and type as needed
+  cv::Mat lidarMapPostProccessed = cv::Mat::zeros(1000, 1000, CV_8UC3); // Adjust size and type as needed
+
   int frames_since_last_opt = 0;
   int optimize_every_n_frames = 10;
   std::unique_ptr<g2o::SparseOptimizer> optimizer;

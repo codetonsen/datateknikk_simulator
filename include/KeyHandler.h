@@ -20,19 +20,9 @@ public:
     void onKeyReleased(threepp::KeyEvent evt) override;
 
 private:
-    bool shiftPressed = false;
     bool lidarScan = false;
     float dt;
     Sphero& sphero_;
-    bool rotatingLeft = false;
-    bool rotatingRight = false;
-    float maxSpeed = 2.0f;
-    int payload = 0;
-    struct KeyState {
-        float heading = 0.0f;
-        float speed = 0.0f;
-    } keyState_;
-
 
     bool forward = false;
     bool backward = false;

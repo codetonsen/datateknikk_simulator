@@ -1,0 +1,42 @@
+# Blender 4.1.1 MTL File: 'sphero.blend'
+# www.blender.org
+
+newmtl Material
+Ns 50.988564
+Ka 0.127419 0.127419 0.127419
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd C:/Users/ekorn/Documents/2024/Robot Autonomous/Sphero-Simulator/Assets/Models/sphero_texture.png
+
+newmtl Material.001
+Ns 50.988564
+Ka 0.127419 0.127419 0.127419
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd C:/Users/ekorn/Documents/2024/Robot Autonomous/Sphero-Simulator/Assets/Models/sphero_texture.png
+
+newmtl Material.002
+Ns 50.988564
+Ka 0.127419 0.127419 0.127419
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd C:/Users/ekorn/Documents/2024/Robot Autonomous/Sphero-Simulator/Assets/Models/sphero_texture.png
+
+newmtl Material.003
+Ns 50.988564
+Ka 0.127419 0.127419 0.127419
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd C:/Users/ekorn/Documents/2024/Robot Autonomous/Sphero-Simulator/Assets/Models/sphero_texture.png

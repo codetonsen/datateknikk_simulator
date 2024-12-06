@@ -123,6 +123,8 @@ std::vector<std::pair<std::vector<LidarScan>, std::vector<float>>> NewSlam::pars
 
 // G2O SLAM METHODS and Helpers
 void NewSlam::exportToG2O(const std::string& filename, g2o::SparseOptimizer* optimizer) {
+    // ChatGPT Parser for g2o format
+    // This method is purely chatGPT to export to g2o format. The g2o format helps us test the actual pose graph algorithm
     std::ofstream file(filename);
     if (!file.is_open()) {
         std::cerr << "Failed to open " << filename << " for writing." << std::endl;
@@ -163,7 +165,7 @@ void NewSlam::exportToG2O(const std::string& filename, g2o::SparseOptimizer* opt
 
     file.close();
     std::cout << "Pose graph exported to " << filename << std::endl;
-}// ChatGPT Parser for g2o format
+}
 void NewSlam::addVertex(int id, std::vector<float>& pose) {
     g2o::VertexSE2* v = new g2o::VertexSE2();
     v->setId(id);
@@ -264,7 +266,7 @@ bool NewSlam::doTheMatching(std::vector<std::pair<float, float>> sourceData, std
 void NewSlam::addFrame(std::pair<std::vector<std::pair<float, float>>, std::vector<float>> dataFrame) {
     // Check for missing data
     if (dataFrame.first.size() == 0 or dataFrame.second.size() == 0) {return;};
-
+    updateLidarMap(dataFrame);
     // Make data available and seperated
     std::vector<std::pair<float, float>> pointcloud = dataFrame.first;
     float x = dataFrame.second[0];
@@ -336,18 +338,52 @@ void NewSlam::addFrame(std::pair<std::vector<std::pair<float, float>>, std::vect
     // FIRST DOUBLE CHECK TRANSFORM BY RUNNING ICP
     std::cout << "Starting ICP optimization on transform" << std::endl;
     Eigen::Matrix4f transformation;
+
+    /*
+    float robotX = dataFrame.second[0];
+    float robotY = dataFrame.second[1];
+    float robotHeading = dataFrame.second[2];
+    std::vector<std::pair<float, float>> processedLidarFrameForICP = {};
+    for (auto point : dataFrame.first) {
+
+        float localX = point.first;
+        float localY = point.second;
+
+        // apply the rotation
+        float transformedX = localX * cos(-robotHeading) - localY * sin(-robotHeading);
+        float transformedY = localX * sin(-robotHeading) + localY * cos(-robotHeading);
+        processedLidarFrameForICP.push_back({transformedX, transformedY});
+
+    }
+    std::vector<std::pair<float, float>> processedLidarFrameForICP2 = {};
+    auto previousRobotHeading = poseFrames[lidarFrames.size()-2][2];
+    for (auto point : lidarFrames[lidarFrames.size()-2]) {
+
+        float localX = point.first;
+        float localY = point.second;
+
+        // apply the rotation
+        float transformedX = localX * cos(-previousRobotHeading) - localY * sin(-previousRobotHeading);
+        float transformedY = localX * sin(-previousRobotHeading) + localY * cos(-previousRobotHeading);
+        processedLidarFrameForICP2.push_back({transformedX, transformedY});
+
+    }*/
     double score;
     bool success = doTheMatching(lidarFrames[lidarFrames.size()-2], dataFrame.first, transformation, score);
     if (success) {
-      std::cout << "GICP Found Match!" << std::endl;
-      std::cout << transformation << std::endl;
-      std::cout << "With a Score of: " << score << std::endl;
-      double matchThreshold = 0.01;
-      if (score > matchThreshold) {
-        float delta_x = transformation(0, 3);
-        float delta_y = transformation(1, 3);
-        float delta_theta = std::atan2(transformation(1, 0), transformation(0, 0));
 
+      double matchThreshold = 0.1;
+
+      if (score < matchThreshold) {
+
+          std::cout << "GICP Found Match!" << std::endl;
+          std::cout << transformation << std::endl;
+          std::cout << "With a Score of: " << score << std::endl;
+          float delta_x = transformation(0, 3);
+          float delta_y = transformation(1, 3);
+          float delta_theta = std::atan2(transformation(1, 0), transformation(0, 0));
+          std::vector<float> newPose = {dataFrame.second[0] + delta_x, dataFrame.second[1] + delta_y, dataFrame.second[2] +delta_theta};
+          //updateLidarMapPostProcess({dataFrame.first, newPose});
 
 
 
@@ -357,66 +393,51 @@ void NewSlam::addFrame(std::pair<std::vector<std::pair<float, float>>, std::vect
     }
 
 
-    // add vertex and edge as well as to the main lists
-
-
-
-
-
-
     // add the pose to a cell
     myGridInstance.newCell(x,y,lidarFrames.size());
 
-    // if keyfarme addedd
+
     poseInsecurity = 2;
-
-
     std::vector<int> lidarIndexes;
     int currentID = myGridInstance.cellCount;
     float searchXmax = x+poseInsecurity;
     float searchYmax = y+poseInsecurity;
     float searchXmin = x-poseInsecurity;
     float searchYmin = y-poseInsecurity;
-    std::cout << "coords : " << x << y << " and searchminmax " << (searchYmax - searchYmin)/myGridInstance.scaleFactor <<std::endl;
-    std::cout << "The cell id's are: ";
+
+    //std::cout << "coords : " << x << y << " and searchminmax " << (searchYmax - searchYmin)/myGridInstance.scaleFactor <<std::endl;
+    //std::cout << "The cell id's are: ";
     for (float i = searchXmin; i <= searchXmax; i += ((1)/myGridInstance.scaleFactor)) {
-      // searchXmax - searchXmin
       for (float j = searchYmin; j <= searchYmax; j += ((1)/myGridInstance.scaleFactor)) {
 
-        if (sqrt(powf(i-x,2) + powf(j-y,2)) > poseInsecurity) {
-          // saidjn
-        } else {
 
+        if (sqrt(powf(i-x,2) + powf(j-y,2)) < poseInsecurity) {
+            auto frameIndexes = myGridInstance.getFrameIndexes(i, j);
+            //std::cout << "The available cells are: " << currentID-(searchYmax - searchYmin) << std::endl;
+            //std::cout << "Searching at cell at : " << i << ", " << j << std::endl;
+            if (!frameIndexes.lidarIndexes.empty() && frameIndexes.id < currentID-(poseInsecurity * 1.5 * myGridInstance.scaleFactor)) {
 
+                // searchYmax - searchYmin
+                // cur 5,  5-2=3 | 0 1 2
 
-          auto frameIndexes = myGridInstance.getFrameIndexes(i, j);
-          //std::cout << "The available cells are: " << currentID-(searchYmax - searchYmin) << std::endl;
-          //std::cout << "Searching at cell at : " << i << ", " << j << std::endl;
+                // Adds visualization point.
+                auto index = myGridInstance.getFrameIndexes(i, j).id;
+                //std::cout << index << " " << " and size of vector is: " << myGridInstance.visualizationMeshes.size() << std::endl;
+                auto detectedmat = threepp::MeshBasicMaterial::create();
+                detectedmat->color = threepp::Color::blue;
+                if (frameIndexes.id >= 0 && frameIndexes.id < myGridInstance.visualizationMeshes.size()) {
+                    //std::cout << "ID of Changed Color" << frameIndexes.id << std::endl;
+                    auto frameIndex = frameIndexes.id;
+                    myGridInstance.visualizationQueue.push([this, frameIndex]() {
+                      auto mat = threepp::MeshBasicMaterial::create();
+                      mat->color = threepp::Color::blue;
+                      myGridInstance.visualizationMeshes[frameIndex]->setMaterial(mat);
+                    });
 
-
-          if (!frameIndexes.lidarIndexes.empty() && frameIndexes.id < currentID-(poseInsecurity * 1.5 * myGridInstance.scaleFactor)) {
-
-            // searchYmax - searchYmin
-            // cur 5,  5-2=3 | 0 1 2
-
-
-            auto index = myGridInstance.getFrameIndexes(i, j).id;
-            //std::cout << index << " " << " and size of vector is: " << myGridInstance.visualizationMeshes.size() << std::endl;
-            auto detectedmat = threepp::MeshBasicMaterial::create();
-            detectedmat->color = threepp::Color::blue;
-            if (frameIndexes.id >= 0 && frameIndexes.id < myGridInstance.visualizationMeshes.size()) {
-              std::cout << "ID of Changed Color" << frameIndexes.id << std::endl;
-              auto frameIndex = frameIndexes.id;
-              myGridInstance.visualizationQueue.push([this, frameIndex]() {
-                auto mat = threepp::MeshBasicMaterial::create();
-                mat->color = threepp::Color::blue;
-                myGridInstance.visualizationMeshes[frameIndex]->setMaterial(mat);
-              });
-
+                }
+                //for (int i : myGridInstance.getFrameIndexes(i, j).lidarIndexes) {lidarIndexes.push_back(i);} //This takes too long
+                lidarIndexes.push_back(myGridInstance.getFrameIndexes(i,j).lidarIndexes.front());
             }
-            //for (int i : myGridInstance.getFrameIndexes(i, j).lidarIndexes) {lidarIndexes.push_back(i);} //This takes too long
-            lidarIndexes.push_back(myGridInstance.getFrameIndexes(i,j).lidarIndexes.front());
-          }
         }
       }
     }
@@ -438,6 +459,17 @@ void NewSlam::addFrame(std::pair<std::vector<std::pair<float, float>>, std::vect
       if (index > lidarFrames.size()) {break;}
       bool didGood = doTheMatching(lidarFrames[index], dataFrame.first, transformation, score);
       if (didGood) {
+          if  (score < 0.1) {
+              std::cout << "GICP Found Match!" << std::endl;
+              std::cout << transformation << std::endl;
+              std::cout << "With a Score of: " << score << std::endl;
+              float delta_x = transformation(0, 3);
+              float delta_y = transformation(1, 3);
+              float delta_theta = std::atan2(transformation(1, 0), transformation(0, 0));
+              std::vector<float> newPose = {dataFrame.second[0] + delta_x, dataFrame.second[1] + delta_y, dataFrame.second[2] +delta_theta};
+              //updateLidarMapPostProcess({dataFrame.first, newPose});
+
+          }
         Eigen::Isometry2d relative_pose = Eigen::Isometry2d::Identity();
         relative_pose.translate(Eigen::Vector2d(poseFrames[index][0]-x, poseFrames[index][1]-y));
         relative_pose.rotate(Eigen::Rotation2Dd(poseFrames[index][2]-heading));
@@ -458,6 +490,7 @@ void NewSlam::addFrame(std::pair<std::vector<std::pair<float, float>>, std::vect
 
 
       /*
+       *Runs the pose graph optimizer.
       frames_since_last_opt++;
       if (frames_since_last_opt >= optimize_every_n_frames) {
         runOptimization();
@@ -470,3 +503,91 @@ void NewSlam::addFrame(std::pair<std::vector<std::pair<float, float>>, std::vect
     };
   };
 
+void NewSlam::updateLidarMap(const std::pair<std::vector<std::pair<float, float>>, std::vector<float>>& scanAndPose) {
+    // Ensure the pose vector is of size 3
+    if (scanAndPose.second.size() != 3) {
+        throw std::invalid_argument("Pose vector is not of size 3");
+    }
+    float robotX = scanAndPose.second[0];
+    float robotY = scanAndPose.second[1];
+    float robotHeading = scanAndPose.second[2];
+    //std::cout << "ROBOT HEADING: " << robotHeading << std::endl;
+
+    const float scale = 50.0;
+    const int mapWidth = 500.0;
+    const int mapHeight = 500.0;
+
+    for (const auto& point : scanAndPose.first) {
+        float localX = point.first;
+        float localY = point.second;
+
+        // apply the rotation of the rover
+        float transformedX = localX * cos(-robotHeading) - localY * sin(-robotHeading);
+        float transformedY = localX * sin(-robotHeading) + localY * cos(-robotHeading);
+
+        // convert to map scale
+        int mapX = static_cast<int>(transformedX * scale + robotX * scale + mapWidth / 2);
+        int mapY = static_cast<int>(transformedY * scale + robotY * scale + mapHeight / 2);
+
+        if (mapX >= 0 && mapX < mapWidth && mapY >= 0 && mapY < mapHeight) {
+            // Draw the point on the map
+            cv::circle(lidarMap, cv::Point(mapX, mapY), 1, cv::Scalar(0, 255, 0), -1); // Green dots for points
+        }
+
+    }
+
+    int robotMapX = static_cast<int>(robotX * scale + mapWidth / 2);
+    int robotMapY = static_cast<int>(robotY * scale + mapHeight / 2);
+    if (robotMapX >= 0 && robotMapX < mapWidth && robotMapY >= 0 && robotMapY < mapHeight) { // boundsCheck
+        cv::circle(lidarMap, cv::Point(robotMapX, robotMapY), 3, cv::Scalar(0, 0, 255), -1); // Red dot for robot
+    }
+
+    // Display the updated map
+    cv::imshow("Lidar Map Odometry Data Only", lidarMap);
+    cv::waitKey(1);
+}
+
+void NewSlam::updateLidarMapPostProcess(const std::pair<std::vector<std::pair<float, float>>, std::vector<float>>& scanAndPose) {
+    std::cout << "Got a post proccessed fframe" << std::endl;
+    // Ensure the pose vector is of size 3
+    if (scanAndPose.second.size() != 3) {
+        throw std::invalid_argument("Pose vector is not of size 3");
+    }
+    float robotX = scanAndPose.second[0];
+    float robotY = scanAndPose.second[1];
+    float robotHeading = scanAndPose.second[2];
+    //std::cout << "ROBOT HEADING: " << robotHeading << std::endl;
+
+    const float scale = 50.0;
+    const int mapWidth = 500.0;
+    const int mapHeight = 500.0;
+
+    for (const auto& point : scanAndPose.first) {
+        float localX = point.first;
+        float localY = point.second;
+
+        // apply the rotation of the rover
+        float transformedX = localX * cos(-robotHeading) - localY * sin(-robotHeading);
+        float transformedY = localX * sin(-robotHeading) + localY * cos(-robotHeading);
+
+        // convert to map scale
+        int mapX = static_cast<int>(transformedX * scale + robotX * scale + mapWidth / 2);
+        int mapY = static_cast<int>(transformedY * scale + robotY * scale + mapHeight / 2);
+
+        if (mapX >= 0 && mapX < mapWidth && mapY >= 0 && mapY < mapHeight) {
+            // Draw the point on the map
+            cv::circle(lidarMapPostProccessed, cv::Point(mapX, mapY), 1, cv::Scalar(0, 255, 0), -1); // Green dots for points
+        }
+
+    }
+
+    int robotMapX = static_cast<int>(robotX * scale + mapWidth / 2);
+    int robotMapY = static_cast<int>(robotY * scale + mapHeight / 2);
+    if (robotMapX >= 0 && robotMapX < mapWidth && robotMapY >= 0 && robotMapY < mapHeight) { // boundsCheck
+        cv::circle(lidarMapPostProccessed, cv::Point(robotMapX, robotMapY), 3, cv::Scalar(0, 0, 255), -1); // Red dot for robot
+    }
+
+    // Display the updated map
+    cv::imshow("Lidar Map Post-Proccessed", lidarMapPostProccessed);
+    cv::waitKey(1);
+}

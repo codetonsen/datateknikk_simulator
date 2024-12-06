@@ -33,9 +33,6 @@ public:
     void changeColor(float gx, float gy);
 
     std::shared_ptr<threepp::Mesh> createVisuBox(const threepp::Vector3& pos, const threepp::Color& color);
-    // Helpers
-    void changeID(float gx, float gy) {}
-
 
     // Public Variables for ease of use currently, might need fix. TODO: look through this
     std::unordered_map<int, std::unordered_map<int, GridData>> theGrid;

@@ -29,23 +29,23 @@ std::vector<Vector3> createPathPoints(float scale = 0.3f, float offset = 0.0f) {
     std::vector<Vector3> pathPoints;
 
     // Define parameters for the semicircles with scaling
-    float radius = 0.5f * scale;
-    int segments = 100;
+    float radius = 0.23f * scale;
+    int segments = 50;
 
-    // First semicircle on the left side (-0.5 * scale center)
+    // First semicircle
     for (int i = 0; i <= segments; ++i) {
         float angle = math::PI * 0.5f + i * math::PI / segments;
         pathPoints.emplace_back((-0.5f * scale) + radius * std::cos(angle), radius * std::sin(angle), offset);
     }
 
-    // Straight line connecting the left semicircle to the right semicircle
+    // Straight line connecting the left to the right
     int lineSegments = 50;  // Number of points along the straight line
     for (int i = 0; i <= lineSegments; ++i) {
         float z = (-0.5f * scale) + (scale * i / lineSegments); // Interpolate z from -0.5 * scale to 0.5 * scale
         pathPoints.emplace_back(z, -radius, offset);
     }
 
-    // Second semicircle on the right side (0.5 * scale center)
+    // Second semicircle
     for (int i = 0; i <= segments; ++i) {
         float angle = math::PI * 1.5f + i * math::PI / segments;
         pathPoints.emplace_back((0.5f * scale) + radius * std::cos(angle), radius * std::sin(angle), offset);
@@ -62,16 +62,16 @@ std::vector<Vector3> createPathPoints(float scale = 0.3f, float offset = 0.0f) {
 
 std::shared_ptr<threepp::Mesh> createCubeForBelt(const std::shared_ptr<MeshBasicMaterial>& material) {
     auto scale = 0.2;
-    auto geometry = BoxGeometry::create(0.05 * scale, 0.05f * scale, 1.0f * scale);
+    auto geometry = BoxGeometry::create(0.05 * scale, 0.05f * scale, 0.4f * scale);
     return Mesh::create(geometry, material);
 }
 InstancedMeshController::InstancedMeshController(int instanceCount, std::shared_ptr<InstancedMesh> instancedMesh)
     : instanceCount_(instanceCount), instancedMesh_(std::move(instancedMesh)) {
-    initializePositionsAndVelocities();
+    initializePositions();
     initializeInstanceColors();
 }
 
-void InstancedMeshController::initializePositionsAndVelocities() {
+void InstancedMeshController::initializePositions() {
     Matrix4 matrix;
     for (int i = 0; i < instanceCount_; ++i) {
         Vector3 position(40.0f, 40.0f, 40.0f);
@@ -83,7 +83,7 @@ void InstancedMeshController::initializePositionsAndVelocities() {
 
 void InstancedMeshController::initializeInstanceColors() {
     for (int i = 0; i < instanceCount_; ++i) {
-        instancedMesh_->setColorAt(i, Color(0x00ffff));  // Start with teal
+        instancedMesh_->setColorAt(i, Color(0x00ff00));  // Start with teal
     }
     instancedMesh_->instanceColor()->needsUpdate();
 }
@@ -110,7 +110,7 @@ void InstancedMeshController::updatePositionsFromLidar(const std::vector<LidarSc
     instancedMesh_->setCount(instanceIndex);
     instancedMesh_->instanceMatrix()->needsUpdate();
 }
-
+/*
 void InstancedMeshController::updateColorsByAge(const std::vector<LidarScan>& lidarScans) {
     for (int i = 0; i < instanceCount_; ++i) {
         if (i >= lidarScans.size()) break;
@@ -130,3 +130,4 @@ Color InstancedMeshController::interpolateColor(const Color& color1, const Color
     result.lerp(color2, t);
     return result;
 }
+*/

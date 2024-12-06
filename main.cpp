@@ -1,20 +1,13 @@
 #include <threepp/threepp.hpp>
 #include <vector>
 #include <mutex>
-#include <chrono>
+#include <utility>
+
 #include "include/Sphero.h"
 #include "include/SimulatorUtilities.h"
 #include "include/KeyHandler.h"
-#include "include/Communication.h"
 #include "include/Slam.h"
-#include <pcl/point_types.h>
-#include <pcl/point_cloud.h>
-#include <pcl/registration/gicp.h>
-#include <opencv2/opencv.hpp>
-#include <boost/make_shared.hpp>
-#include <Eigen/Dense>
-#include <string>
-#include <utility>
+
 
 using namespace threepp;
 std::shared_ptr<Mesh> createBox2(const Vector3& pos, const Color& color) {
@@ -27,8 +20,8 @@ std::shared_ptr<Mesh> createBox2(const Vector3& pos, const Color& color) {
 
     return box;
 }
-#include <fstream> // For saving data
-#include <iomanip> // For saving data
+
+
 int main() {
 
     // Rest of the scene
@@ -85,7 +78,7 @@ int main() {
 
     // Create Sphero object
     Sphero sphero(scene, "127.0.0.1", 65432);  // Provide the host and port
-    sphero.position.y = 0.2;
+    sphero.position.y = 0.1;
     scene->add(sphero);
     sphero.setLidarSpeed(600.0);
     sphero.enableSweep(false);
@@ -125,7 +118,7 @@ int main() {
     canvas.animate([&]() {
         float deltaTime = clock.getDelta();
         keyController.update(deltaTime);
-        sphero.update(deltaTime);
+
         time += deltaTime;
 
         // Process visualization updates

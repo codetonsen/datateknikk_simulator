@@ -37,33 +37,9 @@ add_executable(New_Version_Simulator
         source/Sphero.cpp
         source/SimulatorUtilities.cpp
         source/KeyHandler.cpp
-        source/Communication.cpp
         source/Grid.cpp
-        #source/SlamAlgo.cpp
 )
 
-# Find packages
-
-#find_package(PCL CONFIG REQUIRED COMPONENTS
-#        common
-#        kdtree
-#        octree
-#        search
-#        sample_consensus
-#        filters
-#        io
-#        features
-#        ml
-#        segmentation
-#        surface
-#        registration
-#        keypoints
-#        tracking
-#        recognition
-#        stereo
-#        visualization
-#)
-set(VTK_MODULE_ENABLE_VTK_vtkm "MAYBE_UNUSED")
 
 find_package(VTK REQUIRED)
 

@@ -4,7 +4,7 @@
 
 #include "../include/Grid.h"
 TheGrid::TheGrid(bool isSimulator, const std::shared_ptr<threepp::Scene> &scene)
-	: isSimulator(isSimulator), scene(scene), scaleFactor(1.0f)
+	: isSimulator(isSimulator), scene(scene), scaleFactor(10.0f)
 {
 	std::cout << "Initializing Grid" << std::endl;
 	std::cout << "Initializing Grid with scaleFactor: " << scaleFactor << std::endl;
