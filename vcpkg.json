@@ -1,0 +1,17 @@
+{
+  "dependencies": [
+    "nlohmann-json",
+    "asio",
+    "opencv",
+    "g2o",
+    {
+      "name": "vtk",
+      "features": ["opengl"]
+    },
+    {
+      "name": "pcl",
+      "features": [ "visualization" ]
+    }
+
+  ]
+}
